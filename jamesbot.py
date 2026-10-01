@@ -23,30 +23,30 @@ class UltimateEngineJamesBot:
         self.current_mood_topic = "greetings"
         self.turns_learned = 0
 
-        # ===== UPGRADE 1: EXPANDED HIDDEN LAYER =====
+        # ===== EXPANDED HIDDEN LAYER =====
         self.hidden_size = 128
         
-        # ===== UPGRADE 2: INITIALIZE WEIGHTS AND BIASES =====
+        # ===== INITIALIZE WEIGHTS AND BIASES =====
         self.W1 = np.random.randn(self.vocab_size, self.hidden_size) * 0.01
         self.b1 = np.zeros((1, self.hidden_size))
         self.W2 = np.random.randn(self.hidden_size, self.num_classes) * 0.01
         self.b2 = np.zeros((1, self.num_classes))
 
-        # ===== UPGRADE 3: MOMENTUM TRACKING FOR OPTIMIZATION =====
+        # ===== MOMENTUM TRACKING FOR OPTIMIZATION =====
         self.W1_momentum = np.zeros_like(self.W1)
         self.b1_momentum = np.zeros_like(self.b1)
         self.W2_momentum = np.zeros_like(self.W2)
         self.b2_momentum = np.zeros_like(self.b2)
         self.momentum_beta = 0.9  
 
-        # ===== UPGRADE 4: ADAPTIVE LEARNING RATE (Adam-like) =====
+        # ===== ADAPTIVE LEARNING RATE (Adam-like) =====
         self.learning_rate = 0.01
         self.base_learning_rate = 0.01
         
         self.m_W1 = np.zeros_like(self.W1)  
         self.v_W1 = np.zeros_like(self.W1)  
         self.m_W2 = np.zeros_like(self.W2)
-        self.v_W2 = np.zeros_like(self.W2)
+        self.v_W2 = np.zeros_like(self.v_W2) if hasattr(self, 'v_W2') else np.zeros_like(self.W2)
         self.m_b1 = np.zeros_like(self.b1)
         self.v_b1 = np.zeros_like(self.b1)
         self.m_b2 = np.zeros_like(self.b2)
@@ -57,7 +57,7 @@ class UltimateEngineJamesBot:
         self.adam_epsilon = 1e-8
         self.adam_t = 0  
 
-        # ===== UPGRADE 5: CONTEXTUAL WEIGHTED MEMORY =====
+        # ===== CONTEXTUAL WEIGHTED MEMORY =====
         self.context_scores = {"greetings": 0.0, "tech": 0.0, "gaming": 0.0, "school": 0.0}
         self.context_decay_factor = 0.95  
         self.recent_topics = []  
@@ -96,7 +96,7 @@ class UltimateEngineJamesBot:
         self.last_seed_source = "Adaptive Neural Network Inference"
         self.last_tier_trace = {}
         
-        # ===== UPGRADE 6: TELEMETRY TRACKING =====
+        # ===== TELEMETRY TRACKING =====
         self.error_history = []
         self.gradient_history = []
         self.learning_rate_history = []
@@ -104,7 +104,7 @@ class UltimateEngineJamesBot:
         self.cumulative_error = 0.0
         self.last_gradient_magnitude = 0.0
 
-        # ===== UPGRADE 7: LOAD PERSISTENT WEIGHTS IF AVAILABLE =====
+        # ===== LOAD PERSISTENT WEIGHTS IF AVAILABLE =====
         self.load_weights()
 
     def clean_text(self, text):
@@ -169,28 +169,25 @@ class UltimateEngineJamesBot:
         grad_W1 = -np.dot(X.T, d_hidden)
         grad_b1 = -np.sum(d_hidden, axis=0, keepdims=True)
 
-        # Adam W2
+        # Adam Updates
         self.m_W2 = self.adam_beta1 * self.m_W2 + (1 - self.adam_beta1) * grad_W2
         self.v_W2 = self.adam_beta2 * self.v_W2 + (1 - self.adam_beta2) * (grad_W2 ** 2)
         m_hat_W2 = self.m_W2 / (1 - self.adam_beta1 ** self.adam_t)
         v_hat_W2 = self.v_W2 / (1 - self.adam_beta2 ** self.adam_t)
         self.W2 += self.learning_rate * m_hat_W2 / (np.sqrt(v_hat_W2) + self.adam_epsilon)
 
-        # Adam b2
         self.m_b2 = self.adam_beta1 * self.m_b2 + (1 - self.adam_beta1) * grad_b2
         self.v_b2 = self.adam_beta2 * self.v_b2 + (1 - self.adam_beta2) * (grad_b2 ** 2)
         m_hat_b2 = self.m_b2 / (1 - self.adam_beta1 ** self.adam_t)
         v_hat_b2 = self.v_b2 / (1 - self.adam_beta2 ** self.adam_t)
         self.b2 += self.learning_rate * m_hat_b2 / (np.sqrt(v_hat_b2) + self.adam_epsilon)
 
-        # Adam W1
         self.m_W1 = self.adam_beta1 * self.m_W1 + (1 - self.adam_beta1) * grad_W1
         self.v_W1 = self.adam_beta2 * self.v_W1 + (1 - self.adam_beta2) * (grad_W1 ** 2)
         m_hat_W1 = self.m_W1 / (1 - self.adam_beta1 ** self.adam_t)
         v_hat_W1 = self.v_W1 / (1 - self.adam_beta2 ** self.adam_t)
         self.W1 += self.learning_rate * m_hat_W1 / (np.sqrt(v_hat_W1) + self.adam_epsilon)
 
-        # Adam b1
         self.m_b1 = self.adam_beta1 * self.m_b1 + (1 - self.adam_beta1) * grad_b1
         self.v_b1 = self.adam_beta2 * self.v_b1 + (1 - self.adam_beta2) * (grad_b1 ** 2)
         m_hat_b1 = self.m_b1 / (1 - self.adam_beta1 ** self.adam_t)
@@ -218,7 +215,7 @@ class UltimateEngineJamesBot:
             self.context_scores = {k: 0.25 for k in self.class_names}
             return "Hey! Type keywords about gaming, tech, or school so my neural weights can activate."
 
-        probabilities = self.forward(X)[0]
+        probabilities = self.forward(X)[0] # Added [0] index to pull structural matrix row correctly
         predicted_idx = np.argmax(probabilities)
         self.current_mood_topic = self.class_names[predicted_idx]
 for key in self.context_scores:
@@ -292,36 +289,34 @@ return {
 "cumulative_error": round(float(self.cumulative_error), 4)
 }
 =====================================================================
-INTERACTIVE CLI TERMINAL APP BLOCK
+CODESPACE COMFORT INTERACTIVE TERMINAL LOOP
 =====================================================================
 if name == "main":
-# Initialize the engine
 bot = UltimateEngineJamesBot()
-print("\n" + "="*60)
-print(f"  {bot.version} Initialized Successfully!")
-print("  Type your message and press Enter.")
-print("  Type 'telemetry' to view model stats or 'exit' to quit.")
-print("="*60 + "\n")
+print("\n" + "═"*60)
+print(f" 🚀 {bot.version} Live in Codespace!")
+print(" 💡 Type keywords about gaming, tech, or school to chat.")
+print(" 🛠️ Commands: 'telemetry' (view engine stats) | 'exit' (quit)")
+print("═"*60 + "\n")
 while True:
 try:
-user_input = input("You: ").strip()
+user_input = input("You 👤: ").strip()
 if not user_input:
 continue
 if user_input.lower() == 'exit':
-print("Saving weights and shutting down. Goodbye!")
+print("\n💾 Retention check: Saving optimized weights... Goodbye!")
 bot.save_weights()
 break
 if user_input.lower() == 'telemetry':
 stats = bot.get_telemetry()
-print("\n--- NEURAL NETWORK TELEMETRY ---")
+print("\n🧠 --- CODESPACE NEURAL ENGINE DASHBOARD ---")
 for key, val in stats.items():
-print(f" {key.replace('_', ' ').title()}: {val}")
-print("--------------------------------\n")
+print(f" • {key.replace('_', ' ').title()}: {val}")
+print("--------------------------------------------\n")
 continue
-# Generate and print the AI reply
 reply = bot.generate_reply(user_input)
-print(f"AI: {reply}\n")
+print(f"AI 🤖: {reply}\n")
 except KeyboardInterrupt:
-print("\nForce quitting... Saving engine weights.")
+print("\n\n⚠️ Process Interrupted. Retaining runtime optimization parameters...")
 bot.save_weights()
 break
